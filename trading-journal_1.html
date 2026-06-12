@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TradeVault — Nhật Ký Trading</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+:root{--bg:#0a0d12;--sf:#111520;--sf2:#161b27;--br:#1e2638;--br2:#2a3348;--ac:#3b82f6;--gr:#22c55e;--gd:#16a34a22;--re:#ef4444;--rd:#dc262622;--ye:#f59e0b;--yd:#d9770622;--tx:#e2e8f0;--t2:#94a3b8;--t3:#475569;--mo:'JetBrains Mono',monospace;--sa:'Space Grotesk',sans-serif}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--tx);font-family:var(--sa);min-height:100vh;overflow-x:hidden}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--br2);border-radius:3px}
+.app{display:flex;min-height:100vh}
+.sidebar{width:212px;background:var(--sf);border-right:1px solid var(--br);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100}
+.logo{padding:17px 15px;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:10px}
+.li{width:31px;height:31px;background:linear-gradient(135deg,#3b82f6,#6366f1);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.lt{font-size:14.5px;font-weight:700;letter-spacing:-.3px}.ls{font-size:10px;color:var(--t3);font-family:var(--mo)}
+.nav{padding:9px 6px;flex:1}.ni{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:7px;cursor:pointer;font-size:13px;color:var(--t2);transition:all .15s;margin-bottom:2px}
+.ni:hover{background:var(--sf2);color:var(--tx)}.ni.active{background:#1e3a5f;color:var(--ac);font-weight:600}
+.ni .ic{font-size:14px;width:17px;text-align:center}
+.sbc{padding:13px;border-top:1px solid var(--br)}
+.main{margin-left:212px;flex:1;display:flex;flex-direction:column}
+.tb{background:var(--sf);border-bottom:1px solid var(--br);padding:11px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.pt{font-size:14.5px;font-weight:600}
+.tbr{display:flex;align-items:center;gap:9px}
+.dbb{display:flex;align-items:center;gap:5px;padding:4px 10px;background:var(--sf2);border:1px solid var(--br2);border-radius:20px;font-size:11px;color:var(--t3)}
+.dbd{width:7px;height:7px;border-radius:50%;background:var(--t3)}
+.dbd.on{background:var(--gr);box-shadow:0 0 5px var(--gr)}
+.ct{padding:20px 24px;flex:1}
+.page{display:none}.page.active{display:block}
+.tabs{display:flex;gap:3px;background:var(--sf);border:1px solid var(--br);border-radius:8px;padding:3px;width:fit-content;margin-bottom:18px}
+.tab{padding:6px 15px;border-radius:6px;cursor:pointer;font-size:12.5px;font-weight:500;color:var(--t2);transition:all .15s}
+.tab.active{background:var(--ac);color:#fff}.tab:hover:not(.active){background:var(--sf2);color:var(--tx)}
+.sg{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.sc{background:var(--sf);border:1px solid var(--br);border-radius:11px;padding:14px 16px;position:relative;overflow:hidden}
+.sc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.sc.bl::before{background:linear-gradient(90deg,var(--ac),transparent)}
+.sc.gr::before{background:linear-gradient(90deg,var(--gr),transparent)}
+.sc.re::before{background:linear-gradient(90deg,var(--re),transparent)}
+.sc.ye::before{background:linear-gradient(90deg,var(--ye),transparent)}
+.sl{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px}
+.sv{font-size:20px;font-weight:700;font-family:var(--mo)}.sv.pos{color:var(--gr)}.sv.neg{color:var(--re)}.sv.neu{color:var(--tx)}
+.ss{font-size:10.5px;color:var(--t3);margin-top:3px;font-family:var(--mo)}
+.pn{background:var(--sf);border:1px solid var(--br);border-radius:12px;overflow:hidden;margin-bottom:18px}
+.ph{background:var(--sf2);border-bottom:1px solid var(--br);padding:12px 17px;display:flex;align-items:center;gap:8px}
+.ptt{font-size:13px;font-weight:600}.psb{font-size:11px;color:var(--t3);margin-left:auto}
+.fg{display:flex;flex-direction:column;gap:5px}
+.fl{font-size:10.5px;color:var(--t2);text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+.fl span{color:var(--t3);font-weight:400;text-transform:none;letter-spacing:0}
+.fi{background:var(--bg);border:1px solid var(--br2);border-radius:7px;padding:8px 11px;font-size:13px;font-family:var(--mo);color:var(--tx);outline:none;transition:border-color .15s;width:100%}
+.fi:focus{border-color:var(--ac)}select.fi{cursor:pointer;appearance:none}
+.dt{display:flex;gap:5px}
+.db{flex:1;padding:8px;border-radius:7px;border:1px solid var(--br2);background:var(--bg);cursor:pointer;font-size:12px;font-weight:700;transition:all .15s;text-align:center;font-family:var(--sa);color:var(--t3)}
+.db.long.a{background:var(--gd);border-color:var(--gr);color:var(--gr)}.db.short.a{background:var(--rd);border-color:var(--re);color:var(--re)}
+.db:not(.a):hover{background:var(--sf2);color:var(--tx)}
+.cr{background:var(--sf2);border:1px solid var(--br);border-radius:10px;padding:15px;margin-top:15px}
+.rh{font-size:10.5px;color:var(--t3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:11px}
+.rg{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
+.rl{font-size:10px;color:var(--t3);margin-bottom:3px}
+.rv{font-size:15px;font-weight:700;font-family:var(--mo)}.rv.pos{color:var(--gr)}.rv.neg{color:var(--re)}.rv.ac{color:var(--ac)}
+.rs{font-size:10px;color:var(--t3);font-family:var(--mo);margin-top:2px}
+.rr{display:flex;gap:6px;margin-top:11px;flex-wrap:wrap}
+.rb{padding:3px 10px;border-radius:5px;font-size:11px;font-weight:700;font-family:var(--mo)}
+.rb.good{background:var(--gd);border:1px solid var(--gr);color:var(--gr)}.rb.ok{background:var(--yd);border:1px solid var(--ye);color:var(--ye)}.rb.bad{background:var(--rd);border:1px solid var(--re);color:var(--re)}
+.ww{margin-top:9px;display:flex;flex-direction:column;gap:4px}
+.wn{padding:6px 10px;border-radius:5px;font-size:11px}
+.wn.w{background:var(--yd);border:1px solid #78350f33;color:var(--ye)}.wn.ok{background:var(--gd);border:1px solid #14532d33;color:var(--gr)}.wn.d{background:var(--rd);border:1px solid #7f1d1d33;color:var(--re)}
+.btn{padding:7px 16px;border-radius:7px;border:none;cursor:pointer;font-size:12.5px;font-weight:600;font-family:var(--sa);transition:all .15s;display:inline-flex;align-items:center;gap:6px}
+.bp{background:var(--ac);color:#fff}.bp:hover{background:#2563eb}
+.bg{background:#16a34a;color:#fff}.bg:hover{background:#15803d}
+.bh{background:transparent;color:var(--t2);border:1px solid var(--br2)}.bh:hover{background:var(--sf2);color:var(--tx)}
+.bd{background:var(--rd);color:var(--re);border:1px solid #7f1d1d44}.bd:hover{background:#dc262633}
+.br2{display:flex;gap:8px;margin-top:14px;align-items:center}
+.tw{background:var(--sf);border:1px solid var(--br);border-radius:12px;overflow:hidden}
+.tbb{background:var(--sf2);border-bottom:1px solid var(--br);padding:9px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.si{background:var(--bg);border:1px solid var(--br2);border-radius:6px;padding:5px 9px;font-size:12px;color:var(--tx);outline:none;width:165px;font-family:var(--sa)}
+.si:focus{border-color:var(--ac)}
+.fb{padding:4px 10px;border-radius:5px;background:var(--bg);border:1px solid var(--br2);font-size:11px;color:var(--t2);cursor:pointer;font-family:var(--sa);transition:all .15s}
+.fb.active{background:var(--ac);border-color:var(--ac);color:#fff}.fb:hover:not(.active){background:var(--sf)}
+table{width:100%;border-collapse:collapse}
+thead th{padding:8px 12px;text-align:left;font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;background:var(--bg);border-bottom:1px solid var(--br);font-weight:600}
+tbody tr{border-bottom:1px solid var(--br);transition:background .1s}tbody tr:last-child{border-bottom:none}tbody tr:hover{background:var(--sf2)}
+tbody td{padding:9px 12px;font-size:12px}
+.mo{font-family:var(--mo)}
+.tg{display:inline-flex;align-items:center;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;font-family:var(--mo)}
+.tg.long{background:var(--gd);color:var(--gr);border:1px solid #16a34a44}.tg.short{background:var(--rd);color:var(--re);border:1px solid #dc262644}
+.tg.open{background:#1e3a5f;color:var(--ac);border:1px solid #1d4ed844}.tg.win{background:var(--gd);color:var(--gr);border:1px solid #16a34a44}
+.tg.loss{background:var(--rd);color:var(--re);border:1px solid #dc262644}.tg.be{background:var(--yd);color:var(--ye);border:1px solid #d9770644}
+.pp{color:var(--gr);font-family:var(--mo);font-weight:600}.pn2{color:var(--re);font-family:var(--mo);font-weight:600}
+.mo2{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:200;align-items:center;justify-content:center;display:none}
+.mo2.open{display:flex}
+.md{background:var(--sf);border:1px solid var(--br2);border-radius:14px;width:480px;max-height:91vh;overflow-y:auto;box-shadow:0 25px 60px rgba(0,0,0,.5)}
+.mh{padding:15px 19px;border-bottom:1px solid var(--br);display:flex;align-items:center;justify-content:space-between}
+.mtt{font-size:14px;font-weight:700}
+.cb{width:25px;height:25px;background:var(--sf2);border:1px solid var(--br2);border-radius:5px;cursor:pointer;color:var(--t2);display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .15s}
+.cb:hover{background:var(--rd);color:var(--re)}
+.mb{padding:18px;display:flex;flex-direction:column;gap:12px}
+.mf{padding:13px 19px;border-top:1px solid var(--br);display:flex;justify-content:flex-end;gap:8px}
+.nta{background:var(--bg);border:1px solid var(--br2);border-radius:7px;padding:7px 10px;font-size:12px;color:var(--tx);font-family:var(--sa);outline:none;width:100%;resize:vertical;min-height:60px}
+.nta:focus{border-color:var(--ac)}
+.sr{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--br)}
+.sr:last-child{border-bottom:none}
+.si2{background:var(--bg);border:1px solid var(--br2);border-radius:6px;padding:6px 10px;font-size:13px;font-family:var(--mo);color:var(--tx);outline:none;width:108px;text-align:right}
+.si2:focus{border-color:var(--ac)}
+.tc{position:fixed;top:16px;right:16px;z-index:999;display:flex;flex-direction:column;gap:6px}
+.tz{background:var(--sf);border:1px solid var(--br2);border-radius:8px;padding:10px 14px;font-size:12px;box-shadow:0 8px 24px rgba(0,0,0,.4);display:flex;align-items:center;gap:8px;animation:sli .2s ease;max-width:260px}
+.tz.success{border-left:3px solid var(--gr)}.tz.error{border-left:3px solid var(--re)}.tz.info{border-left:3px solid var(--ac)}
+@keyframes sli{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+.ld{display:flex;align-items:center;justify-content:center;padding:36px;color:var(--t3);gap:9px;font-size:12.5px}
+.sp{width:18px;height:18px;border:2px solid var(--br2);border-top-color:var(--ac);border-radius:50%;animation:spn .7s linear infinite}
+@keyframes spn{to{transform:rotate(360deg)}}
+.em{text-align:center;padding:40px 20px;color:var(--t3)}
+.ei{font-size:34px;margin-bottom:9px}.ett{font-size:13.5px;font-weight:600;color:var(--t2);margin-bottom:4px}
+.2c{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px}
+.ps{font-size:11.5px;color:var(--t3)}
+.psel{background:var(--sf);border:1px solid var(--br2);border-radius:6px;padding:5px 10px;font-size:12px;color:var(--tx);font-family:var(--sa);outline:none;cursor:pointer}
+.psel:focus{border-color:var(--ac)}
+.mt{width:100%;border-collapse:collapse}
+.mt th{padding:8px 12px;text-align:left;font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;background:var(--bg);border-bottom:1px solid var(--br);font-weight:600}
+.mt td{padding:9px 12px;font-size:12px;border-bottom:1px solid var(--br)}
+.mt tr:last-child td{border-bottom:none}.mt tr:hover td{background:var(--sf2)}
+.tcol{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="sidebar">
+  <div class="logo">
+    <div class="li">⚡</div>
+    <div><div class="lt">TradeVault</div><div class="ls">TRADING JOURNAL</div></div>
+  </div>
+  <nav class="nav">
+    <div class="ni active" onclick="sp('dashboard')"><span class="ic">📊</span>Dashboard</div>
+    <div class="ni" onclick="sp('calculator')"><span class="ic">🧮</span>Tính Lệnh</div>
+    <div class="ni" onclick="sp('journal')"><span class="ic">📋</span>Nhật Ký</div>
+    <div class="ni" onclick="sp('stats')"><span class="ic">📈</span>Thống Kê</div>
+    <div class="ni" onclick="sp('settings')"><span class="ic">⚙️</span>Cài Đặt</div>
+  </nav>
+  <div class="sbc">
+    <div style="font-size:10px;color:var(--t3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Vốn Hiện Tại</div>
+    <div style="font-size:18px;font-family:var(--mo);font-weight:700;color:var(--gr)" id="sbc">$1,000.00</div>
+    <div style="font-size:10.5px;color:var(--t3);font-family:var(--mo)" id="sbp">P&L: $0.00</div>
+  </div>
+</aside>
+<main class="main">
+  <div class="tb">
+    <div class="pt" id="pg-title">Dashboard</div>
+    <div class="tbr">
+      <div class="dbb"><div class="dbd" id="dbd"></div><span id="dbs">Đang kết nối...</span></div>
+      <button class="btn bg" onclick="openNew()">+ Thêm Lệnh</button>
+    </div>
+  </div>
+  <div class="ct">
+
+  <!-- DASHBOARD -->
+  <div class="page active" id="page-dashboard">
+    <div class="sg">
+      <div class="sc bl"><div class="sl">Tổng Vốn</div><div class="sv neu mo" id="d1">$1,000.00</div><div class="ss" id="d1s">Vốn gốc $1,000</div></div>
+      <div class="sc gr"><div class="sl">Tổng P&L</div><div class="sv pos mo" id="d2">$0.00</div><div class="ss" id="d2s">+0.00%</div></div>
+      <div class="sc ye"><div class="sl">Win Rate</div><div class="sv neu mo" id="d3">0%</div><div class="ss" id="d3s">0W / 0L</div></div>
+      <div class="sc re"><div class="sl">Lệnh Mở</div><div class="sv neu mo" id="d4">0</div><div class="ss" id="d4s">Tổng 0 lệnh</div></div>
+    </div>
+    <div class="pn">
+      <div class="ph"><span>📈</span><span class="ptt">Đường Vốn (Equity Curve)</span></div>
+      <div style="padding:15px 17px"><canvas id="ec" height="135" style="width:100%"></canvas></div>
+    </div>
+    <div class="tw">
+      <div class="ph"><span>🕐</span><span class="ptt">Lệnh Gần Đây</span><button class="btn bh" style="margin-left:auto;font-size:11px" onclick="sp('journal')">Xem tất cả →</button></div>
+      <div id="rb"></div>
+    </div>
+  </div>
+
+  <!-- CALCULATOR -->
+  <div class="page" id="page-calculator">
+    <div class="pn">
+      <div class="ph"><span>🧮</span><span class="ptt">Tính Khối Lượng & Quản Lý Vốn</span><span class="psb">Nhập thông số → tự động tính</span></div>
+      <div style="padding:17px">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:12px">
+          <div class="fg"><div class="fl">Mã Tài Sản</div><input class="fi" id="cs" placeholder="BTC,ETH,SOL..." oninput="this.value=this.value.toUpperCase()"></div>
+          <div class="fg"><div class="fl">Hướng Lệnh</div><div class="dt"><button class="db long a" id="cbl" onclick="scd('long')">▲ LONG</button><button class="db short" id="cbs" onclick="scd('short')">▼ SHORT</button></div></div>
+          <div class="fg"><div class="fl">Loại Lệnh</div><select class="fi" id="ct" onchange="cp()"><option value="futures">Futures</option><option value="spot">Spot</option></select></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:12px">
+          <div class="fg"><div class="fl">Tổng Vốn <span>(USD)</span></div><input class="fi" id="cc" type="number" placeholder="1000" oninput="cp()"></div>
+          <div class="fg"><div class="fl">Đòn Bẩy <span>(x)</span></div><input class="fi" id="cl" type="number" placeholder="5" min="1" oninput="cp()"></div>
+          <div class="fg"><div class="fl">Rủi Ro/Lệnh <span>(%)</span></div><input class="fi" id="crp" type="number" placeholder="2" step="0.1" oninput="cp()"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:12px">
+          <div class="fg"><div class="fl">Entry</div><input class="fi" id="ce" type="number" step="any" placeholder="0.00" oninput="cp()"></div>
+          <div class="fg"><div class="fl">Stop Loss</div><input class="fi" id="csl" type="number" step="any" placeholder="0.00" oninput="cp()"></div>
+          <div class="fg"><div class="fl">Take Profit 1</div><input class="fi" id="ct1" type="number" step="any" placeholder="0.00" oninput="cp()"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="fg"><div class="fl">Take Profit 2 <span>(tùy chọn)</span></div><input class="fi" id="ct2" type="number" step="any" placeholder="0.00" oninput="cp()"></div>
+          <div class="fg"><div class="fl">Ghi Chú</div><input class="fi" id="cn" placeholder="Setup, lý do vào lệnh..."></div>
+        </div>
+        <div class="cr" id="cres" style="display:none">
+          <div class="rh">⚡ KẾT QUẢ TÍNH TOÁN</div>
+          <div class="rg">
+            <div><div class="rl">Khối Lượng</div><div class="rv ac" id="rq">—</div><div class="rs" id="rso">coin</div></div>
+            <div><div class="rl">Giá Trị Vị Thế</div><div class="rv ac" id="rpv">—</div><div class="rs" id="rmg">Ký quỹ: —</div></div>
+            <div><div class="rl">Rủi Ro ($)</div><div class="rv neg" id="rrk">—</div><div class="rs" id="rrp">—% vốn</div></div>
+            <div><div class="rl">SL Distance</div><div class="rv" id="rsd" style="color:var(--tx)">—</div><div class="rs" id="rsp">—%</div></div>
+          </div>
+          <div class="rr" id="rrow"></div>
+          <div class="ww" id="cww"></div>
+        </div>
+        <div class="br2">
+          <button class="btn bg" onclick="sfc()">💾 Lưu Lệnh</button>
+          <button class="btn bh" onclick="clc()">🗑️ Xóa</button>
+          <div style="margin-left:auto;font-size:11px;color:var(--t3)" id="crd"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- JOURNAL -->
+  <div class="page" id="page-journal">
+    <div class="tw">
+      <div class="tbb">
+        <input class="si" placeholder="🔍 Tìm mã, ghi chú..." id="js" oninput="rj()">
+        <button class="fb active" onclick="sf('all')" id="fa">Tất cả</button>
+        <button class="fb" onclick="sf('open')" id="fo">Mở</button>
+        <button class="fb" onclick="sf('win')" id="fw">Win</button>
+        <button class="fb" onclick="sf('loss')" id="fl2">Loss</button>
+        <button class="fb" onclick="sf('long')" id="flo">Long</button>
+        <button class="fb" onclick="sf('short')" id="fsh">Short</button>
+        <div style="margin-left:auto"><button class="btn bp" style="font-size:11.5px" onclick="openNew()">+ Thêm</button></div>
+      </div>
+      <div style="overflow-x:auto"><table>
+        <thead><tr><th>#</th><th>MÃ</th><th>HƯỚNG</th><th>ENTRY</th><th>SL</th><th>TP1</th><th>TP2</th><th>KL</th><th>RỦI RO</th><th>P&L</th><th>R:R</th><th>TRẠNG THÁI</th><th>NGÀY</th><th></th></tr></thead>
+        <tbody id="jtb"><tr><td colspan="14"><div class="ld"><div class="sp"></div>Đang tải...</div></td></tr></tbody>
+      </table></div>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="page" id="page-stats">
+    <div class="tabs">
+      <div class="tab active" onclick="sst('overall')">Tổng Quan</div>
+      <div class="tab" onclick="sst('monthly')">Theo Tháng</div>
+      <div class="tab" onclick="sst('yearly')">Theo Năm</div>
+    </div>
+    <div id="st-overall">
+      <div class="tcol">
+        <div class="pn"><div class="ph"><span>🏆</span><span class="ptt">Hiệu Suất Tổng</span></div><div style="padding:15px;display:flex;flex-direction:column" id="ps"></div></div>
+        <div class="pn"><div class="ph"><span>📊</span><span class="ptt">Phân Bổ Kết Quả</span></div><div style="padding:15px"><canvas id="dc" height="175" style="width:100%"></canvas></div></div>
+      </div>
+      <div class="tcol">
+        <div class="pn"><div class="ph"><span>🎯</span><span class="ptt">Top Lệnh Thắng</span></div><div id="tw2"></div></div>
+        <div class="pn"><div class="ph"><span>💔</span><span class="ptt">Top Lệnh Thua</span></div><div id="tl2"></div></div>
+      </div>
+    </div>
+    <div id="st-monthly" style="display:none">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+        <span style="font-size:12px;color:var(--t3)">Năm:</span>
+        <select class="psel" id="mys" onchange="rm()"></select>
+      </div>
+      <div class="pn" style="margin-bottom:18px"><div class="ph"><span>📅</span><span class="ptt">P&L Theo Tháng</span></div><div style="padding:15px 17px"><canvas id="mc" height="155" style="width:100%"></canvas></div></div>
+      <div class="pn"><div class="ph"><span>📋</span><span class="ptt">Chi Tiết Theo Tháng</span></div>
+        <div style="overflow-x:auto"><table class="mt"><thead><tr><th>THÁNG</th><th>LỆNH</th><th>WIN</th><th>LOSS</th><th>WIN RATE</th><th>TỔNG P&L</th><th>AVG P&L</th><th>BEST</th><th>WORST</th></tr></thead><tbody id="mtb"></tbody></table></div>
+      </div>
+    </div>
+    <div id="st-yearly" style="display:none">
+      <div class="pn" style="margin-bottom:18px"><div class="ph"><span>📆</span><span class="ptt">P&L Theo Năm</span></div><div style="padding:15px 17px"><canvas id="yc" height="155" style="width:100%"></canvas></div></div>
+      <div class="pn"><div class="ph"><span>📋</span><span class="ptt">Chi Tiết Theo Năm</span></div>
+        <div style="overflow-x:auto"><table class="mt"><thead><tr><th>NĂM</th><th>LỆNH</th><th>WIN</th><th>LOSS</th><th>WIN RATE</th><th>TỔNG P&L</th><th>TĂNG TRƯỞNG</th><th>MAX DD</th></tr></thead><tbody id="ytb"></tbody></table></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="page" id="page-settings">
+    <div class="pn">
+      <div class="ph"><span>💰</span><span class="ptt">Quản Lý Vốn</span></div>
+      <div class="sr"><div><div style="font-size:13px">Vốn Ban Đầu (USD)</div><div style="font-size:11px;color:var(--t3)">Tổng vốn khởi điểm</div></div><input class="si2" type="number" id="scap" value="1000" onchange="saveSett()"></div>
+      <div class="sr"><div><div style="font-size:13px">Rủi Ro Mặc Định (%)</div><div style="font-size:11px;color:var(--t3)">% vốn mỗi lệnh</div></div><input class="si2" type="number" id="srisk" value="2" step="0.1" onchange="saveSett()"></div>
+      <div class="sr"><div><div style="font-size:13px">Đòn Bẩy Mặc Định (x)</div><div style="font-size:11px;color:var(--t3)">Leverage Futures</div></div><input class="si2" type="number" id="slev" value="5" onchange="saveSett()"></div>
+      <div class="sr"><div><div style="font-size:13px">Cảnh Báo Drawdown (%)</div><div style="font-size:11px;color:var(--t3)">Cảnh báo khi vốn giảm quá</div></div><input class="si2" type="number" id="sdd" value="10" onchange="saveSett()"></div>
+    </div>
+    <div class="pn">
+      <div class="ph"><span>🗄️</span><span class="ptt">Database & Dữ Liệu</span></div>
+      <div class="sr"><div><div style="font-size:13px">Trạng Thái DB</div><div style="font-size:11px;color:var(--t3)" id="dbd2">Supabase PostgreSQL</div></div><div class="dbb"><div class="dbd" id="dbd3"></div><span id="dbs2">...</span></div></div>
+      <div class="sr"><div><div style="font-size:13px">Xuất Dữ Liệu</div><div style="font-size:11px;color:var(--t3)">Tải toàn bộ nhật ký JSON</div></div><button class="btn bh" onclick="expData()">📤 Xuất JSON</button></div>
+      <div class="sr"><div><div style="font-size:13px;color:var(--re)">Xóa Tất Cả</div><div style="font-size:11px;color:var(--t3)">Không thể hoàn tác</div></div><button class="btn bd" onclick="clrAll()">🗑️ Xóa hết</button></div>
+    </div>
+  </div>
+
+  </div>
+</main>
+</div>
+
+<!-- TRADE MODAL -->
+<div class="mo2" id="tm">
+  <div class="md">
+    <div class="mh"><div class="mtt" id="mtitle">Thêm Lệnh Mới</div><div class="cb" onclick="closeMod()">✕</div></div>
+    <div class="mb">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="fg"><div class="fl">Mã Tài Sản</div><input class="fi" id="ms" placeholder="BTC" oninput="this.value=this.value.toUpperCase()"></div>
+        <div class="fg"><div class="fl">Hướng</div><div class="dt"><button class="db long a" id="mbl" onclick="smd('long')">▲ LONG</button><button class="db short" id="mbs" onclick="smd('short')">▼ SHORT</button></div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="fg"><div class="fl">Loại Lệnh</div><select class="fi" id="mtype"><option value="futures">Futures</option><option value="spot">Spot</option></select></div>
+        <div class="fg"><div class="fl">Đòn Bẩy</div><input class="fi" id="mlev" type="number" placeholder="5"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="fg"><div class="fl">Entry</div><input class="fi" id="me" type="number" step="any" placeholder="0.00"></div>
+        <div class="fg"><div class="fl">Stop Loss</div><input class="fi" id="msl" type="number" step="any" placeholder="0.00"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="fg"><div class="fl">Take Profit 1</div><input class="fi" id="mt1" type="number" step="any" placeholder="0.00"></div>
+        <div class="fg"><div class="fl">Take Profit 2 <span>(tuỳ chọn)</span></div><input class="fi" id="mt2" type="number" step="any" placeholder="0.00"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="fg"><div class="fl">Khối Lượng</div><input class="fi" id="mq" type="number" step="any" placeholder="0.0000"></div>
+        <div class="fg"><div class="fl">Trạng Thái</div><select class="fi" id="mst"><option value="open">Đang Mở</option><option value="win">Thắng (Win)</option><option value="loss">Thua (Loss)</option><option value="be">Hòa Vốn (BE)</option></select></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="fg"><div class="fl">Giá Đóng <span>(nếu đã đóng)</span></div><input class="fi" id="mc2" type="number" step="any" placeholder="0.00"></div>
+        <div class="fg"><div class="fl">Ngày Giao Dịch</div><input class="fi" id="mdt" type="datetime-local"></div>
+      </div>
+      <div class="fg"><div class="fl">Ghi Chú / Chiến Lược</div><textarea class="nta" id="mno" placeholder="Setup, lý do, bài học..."></textarea></div>
+    </div>
+    <div class="mf"><button class="btn bh" onclick="closeMod()">Hủy</button><button class="btn bp" onclick="saveTrd()" id="svb">💾 Lưu Lệnh</button></div>
+  </div>
+</div>
+
+<!-- CLOSE MODAL -->
+<div class="mo2" id="cm">
+  <div class="md" style="width:360px">
+    <div class="mh"><div class="mtt">Đóng Lệnh</div><div class="cb" onclick="document.getElementById('cm').classList.remove('open')">✕</div></div>
+    <div class="mb">
+      <div class="fg"><div class="fl">Giá Đóng</div><input class="fi" id="cmp" type="number" step="any" placeholder="Giá thoát lệnh"></div>
+      <div class="fg"><div class="fl">Kết Quả</div><select class="fi" id="cms"><option value="win">✅ Thắng</option><option value="loss">❌ Thua</option><option value="be">⚡ Hòa Vốn</option></select></div>
+      <div class="fg"><div class="fl">Ghi Chú</div><textarea class="nta" id="cmn" placeholder="Lý do đóng, bài học..."></textarea></div>
+    </div>
+    <div class="mf"><button class="btn bh" onclick="document.getElementById('cm').classList.remove('open')">Hủy</button><button class="btn bg" onclick="confClose()">✅ Đóng Lệnh</button></div>
+  </div>
+</div>
+
+<div class="tc" id="toasts"></div>
+
+<script>
+const SB_URL='https://nmfneyfvxovuqgvilcee.supabase.co', SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5tZm5leWZ2eG92dXFndmlsY2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3NzYzMjMsImV4cCI6MjA5NTM1MjMyM30.hENDQrrHZWEMbYCSV2x0ORDOJ9PKZRr-KWlLE45VgRM';
+const sb=supabase.createClient(SB_URL,SB_KEY);
+let sett={capital:1000,riskPct:2,leverage:5,drawdown:10};
+let trades=[],editId=null,closeId=null,filt='all',cdir='long',mdir='long',stab='overall';
+
+async function init(){
+  setdb(false,'Đang kết nối...');
+  try{
+    await ldSett(); await ldTrades();
+    setdb(true,'Đã kết nối');
+    upd(); applySett();
+    toast('✅ Kết nối Supabase thành công','success');
+  }catch(e){setdb(false,'Lỗi kết nối');toast('❌ '+e.message,'error');}
+}
+
+function setdb(ok,msg){
+  ['dbd','dbd3'].forEach(id=>{const el=document.getElementById(id);if(el)el.className='dbd'+(ok?' on':'');});
+  ['dbs','dbs2'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=msg;});
+  const d=document.getElementById('dbd2');if(d)d.textContent=ok?'Supabase — '+SB_URL.split('//')[1].split('.')[0]:'Offline';
+}
+
+async function ldSett(){
+  const{data,error}=await sb.from('trading_settings').select('*').single();
+  if(error&&error.code!=='PGRST116') throw error;
+  if(data){sett.capital=parseFloat(data.capital)||1000;sett.riskPct=parseFloat(data.risk_pct)||2;sett.leverage=parseInt(data.leverage)||5;sett.drawdown=parseFloat(data.drawdown_alert)||10;}
+}
+function applySett(){
+  ['scap','cc'].forEach(id=>document.getElementById(id).value=sett.capital);
+  ['srisk','crp'].forEach(id=>document.getElementById(id).value=sett.riskPct);
+  ['slev','cl','mlev'].forEach(id=>document.getElementById(id).value=sett.leverage);
+  document.getElementById('sdd').value=sett.drawdown;
+}
+async function saveSett(){
+  sett.capital=parseFloat(document.getElementById('scap').value)||1000;
+  sett.riskPct=parseFloat(document.getElementById('srisk').value)||2;
+  sett.leverage=parseInt(document.getElementById('slev').value)||5;
+  sett.drawdown=parseFloat(document.getElementById('sdd').value)||10;
+  applySett();
+  try{
+    const{data}=await sb.from('trading_settings').select('id').single();
+    if(data) await sb.from('trading_settings').update({capital:sett.capital,risk_pct:sett.riskPct,leverage:sett.leverage,drawdown_alert:sett.drawdown}).eq('id',data.id);
+    upd(); toast('✅ Đã lưu cài đặt','success');
+  }catch(e){toast('❌ '+e.message,'error');}
+}
+
+async function ldTrades(){
+  const{data,error}=await sb.from('trades').select('*').order('trade_date',{ascending:false});
+  if(error) throw error;
+  trades=(data||[]).map(m2t);
+}
+function m2t(r){
+  return{id:r.id,symbol:r.symbol,direction:r.direction,type:r.trade_type,leverage:r.leverage,
+    entry:parseFloat(r.entry),sl:parseFloat(r.sl),
+    tp1:r.tp1?parseFloat(r.tp1):null,tp2:r.tp2?parseFloat(r.tp2):null,
+    qty:parseFloat(r.qty)||0,riskUSD:parseFloat(r.risk_usd)||0,riskPct:parseFloat(r.risk_pct)||2,
+    status:r.status,closePrice:r.close_price?parseFloat(r.close_price):null,
+    note:r.note||'',date:r.trade_date||r.created_at};
+}
+async function insTrd(t){
+  const{data,error}=await sb.from('trades').insert({
+    symbol:t.symbol,direction:t.direction,trade_type:t.type,leverage:t.leverage,
+    entry:t.entry,sl:t.sl,tp1:t.tp1,tp2:t.tp2,qty:t.qty,risk_usd:t.riskUSD,
+    risk_pct:t.riskPct,status:t.status,close_price:t.closePrice,note:t.note,
+    trade_date:t.date||new Date().toISOString()
+  }).select().single();
+  if(error) throw error; return m2t(data);
+}
+async function updTrd(id,t){
+  const{error}=await sb.from('trades').update({
+    symbol:t.symbol,direction:t.direction,trade_type:t.type,leverage:t.leverage,
+    entry:t.entry,sl:t.sl,tp1:t.tp1,tp2:t.tp2,qty:t.qty,risk_usd:t.riskUSD,
+    risk_pct:t.riskPct,status:t.status,close_price:t.closePrice,note:t.note,trade_date:t.date
+  }).eq('id',id);
+  if(error) throw error;
+}
+async function delTrd(id){
+  if(!confirm('Xóa lệnh này?'))return;
+  const{error}=await sb.from('trades').delete().eq('id',id);
+  if(error){toast('❌ Lỗi xóa','error');return;}
+  trades=trades.filter(x=>x.id!==id); rj(); upd(); toast('🗑️ Đã xóa','info');
+}
+
+const pgn={dashboard:'Dashboard',calculator:'Tính Lệnh',journal:'Nhật Ký',stats:'Thống Kê',settings:'Cài Đặt'};
+function sp(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  document.querySelectorAll('.ni').forEach((n,i)=>n.classList.toggle('active',Object.keys(pgn)[i]===id));
+  document.getElementById('pg-title').textContent=pgn[id];
+  if(id==='dashboard')upd();if(id==='journal')rj();if(id==='stats'){rst();pys();}
+}
+
+function scd(d){cdir=d;document.getElementById('cbl').classList.toggle('a',d==='long');document.getElementById('cbs').classList.toggle('a',d==='short');cp();}
+function cp(){
+  const cap=parseFloat(document.getElementById('cc').value)||sett.capital;
+  const rp=parseFloat(document.getElementById('crp').value)||sett.riskPct;
+  const lev=parseFloat(document.getElementById('cl').value)||1;
+  const entry=parseFloat(document.getElementById('ce').value);
+  const sl=parseFloat(document.getElementById('csl').value);
+  const tp1=parseFloat(document.getElementById('ct1').value);
+  const tp2=parseFloat(document.getElementById('ct2').value);
+  const type=document.getElementById('ct').value;
+  const sym=document.getElementById('cs').value||'coin';
+  document.getElementById('crd').textContent=`Rủi ro: $${(cap*rp/100).toFixed(2)} (${rp}%)`;
+  if(!entry||!sl||entry<=0||sl<=0){document.getElementById('cres').style.display='none';return;}
+  const rU=cap*rp/100,sld=Math.abs(entry-sl),slp=sld/entry*100,qty=rU/sld,pv=qty*entry,mg=type==='futures'?pv/lev:pv;
+  const ws=[],rrs=[];
+  if(cdir==='long'&&sl>=entry)ws.push({t:'d',m:'❌ LONG: SL phải nhỏ hơn Entry'});
+  if(cdir==='short'&&sl<=entry)ws.push({t:'d',m:'❌ SHORT: SL phải lớn hơn Entry'});
+  if(type==='spot'&&pv>cap)ws.push({t:'w',m:'⚠️ Vị thế vượt vốn'});
+  if(type==='futures'&&mg>cap)ws.push({t:'d',m:'❌ Không đủ ký quỹ'});
+  if(slp<0.5)ws.push({t:'w',m:'⚠️ SL quá chặt (<0.5%)'});
+  if(slp>15)ws.push({t:'w',m:'⚠️ SL quá rộng (>15%)'});
+  if(lev>10&&type==='futures')ws.push({t:'w',m:'⚠️ Leverage >10x — rủi ro thanh lý cao'});
+  if(tp1>0){const r1=(qty*Math.abs(tp1-entry))/rU;rrs.push({l:`TP1 R:R 1:${r1.toFixed(2)}`,c:r1>=2?'good':r1>=1.5?'ok':'bad'});if(r1<1.5)ws.push({t:'w',m:'⚠️ R:R TP1 thấp (<1.5)'});}
+  if(tp2>0){const r2=(qty*Math.abs(tp2-entry))/rU;rrs.push({l:`TP2 R:R 1:${r2.toFixed(2)}`,c:r2>=3?'good':r2>=2?'ok':'bad'});}
+  if(qty<0.001)ws.push({t:'w',m:'⚠️ Khối lượng quá nhỏ'});
+  if(ws.filter(w=>w.t!=='ok').length===0)ws.push({t:'ok',m:'✅ Setup hợp lệ'});
+  document.getElementById('cres').style.display='block';
+  document.getElementById('rq').textContent=qty.toFixed(4);document.getElementById('rso').textContent=sym;
+  document.getElementById('rpv').textContent='$'+pv.toFixed(2);document.getElementById('rmg').textContent='Ký quỹ: $'+mg.toFixed(2);
+  document.getElementById('rrk').textContent='-$'+rU.toFixed(2);document.getElementById('rrp').textContent='-'+rp+'% vốn';
+  document.getElementById('rsd').textContent='$'+sld.toFixed(4);document.getElementById('rsp').textContent=slp.toFixed(2)+'% từ entry';
+  document.getElementById('rrow').innerHTML=rrs.map(r=>`<div class="rb ${r.c}">${r.l}</div>`).join('');
+  document.getElementById('cww').innerHTML=ws.map(w=>`<div class="wn ${w.t}">${w.m}</div>`).join('');
+}
+function clc(){['cs','ce','csl','ct1','ct2','cn'].forEach(id=>document.getElementById(id).value='');document.getElementById('cres').style.display='none';document.getElementById('crd').textContent='';}
+async function sfc(){
+  const sym=document.getElementById('cs').value,entry=parseFloat(document.getElementById('ce').value),sl=parseFloat(document.getElementById('csl').value);
+  const tp1=parseFloat(document.getElementById('ct1').value)||null,tp2=parseFloat(document.getElementById('ct2').value)||null;
+  const cap=parseFloat(document.getElementById('cc').value)||sett.capital,rp=parseFloat(document.getElementById('crp').value)||sett.riskPct;
+  const lev=parseFloat(document.getElementById('cl').value)||1,type=document.getElementById('ct').value,note=document.getElementById('cn').value;
+  if(!sym||!entry||!sl){toast('⚠️ Nhập đủ Mã, Entry, SL','error');return;}
+  const rU=cap*rp/100,qty=parseFloat((rU/Math.abs(entry-sl)).toFixed(4));
+  try{const t=await insTrd({symbol:sym,direction:cdir,type,leverage:lev,entry,sl,tp1,tp2,qty,riskUSD:parseFloat(rU.toFixed(2)),riskPct:rp,status:'open',closePrice:null,note});trades.unshift(t);upd();clc();toast('✅ Đã lưu lệnh '+sym,'success');}
+  catch(e){toast('❌ '+e.message,'error');}
+}
+
+function smd(d){mdir=d;document.getElementById('mbl').classList.toggle('a',d==='long');document.getElementById('mbs').classList.toggle('a',d==='short');}
+function openNew(){
+  editId=null;document.getElementById('mtitle').textContent='Thêm Lệnh Mới';
+  ['ms','me','msl','mt1','mt2','mq','mc2','mno'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('mlev').value=sett.leverage;document.getElementById('mtype').value='futures';
+  document.getElementById('mst').value='open';document.getElementById('mdt').value=new Date().toISOString().slice(0,16);
+  smd('long');document.getElementById('tm').classList.add('open');
+}
+function openEdit(id){
+  const t=trades.find(x=>x.id===id);if(!t)return;editId=id;
+  document.getElementById('mtitle').textContent='Sửa Lệnh';
+  document.getElementById('ms').value=t.symbol;document.getElementById('me').value=t.entry;
+  document.getElementById('msl').value=t.sl;document.getElementById('mt1').value=t.tp1||'';
+  document.getElementById('mt2').value=t.tp2||'';document.getElementById('mq').value=t.qty;
+  document.getElementById('mlev').value=t.leverage||1;document.getElementById('mtype').value=t.type||'futures';
+  document.getElementById('mst').value=t.status;document.getElementById('mc2').value=t.closePrice||'';
+  document.getElementById('mno').value=t.note||'';document.getElementById('mdt').value=new Date(t.date).toISOString().slice(0,16);
+  smd(t.direction||'long');document.getElementById('tm').classList.add('open');
+}
+function closeMod(){document.getElementById('tm').classList.remove('open');}
+async function saveTrd(){
+  const sym=document.getElementById('ms').value.toUpperCase(),entry=parseFloat(document.getElementById('me').value),sl=parseFloat(document.getElementById('msl').value);
+  const tp1=parseFloat(document.getElementById('mt1').value)||null,tp2=parseFloat(document.getElementById('mt2').value)||null;
+  const qty=parseFloat(document.getElementById('mq').value)||0,lev=parseFloat(document.getElementById('mlev').value)||1;
+  const type=document.getElementById('mtype').value,status=document.getElementById('mst').value;
+  const cp2=parseFloat(document.getElementById('mc2').value)||null,note=document.getElementById('mno').value;
+  const dv=document.getElementById('mdt').value,date=dv?new Date(dv).toISOString():new Date().toISOString();
+  if(!sym||!entry||!sl){toast('⚠️ Nhập đủ Mã, Entry, SL','error');return;}
+  const rU=qty?parseFloat((qty*Math.abs(entry-sl)).toFixed(2)):parseFloat((sett.capital*sett.riskPct/100).toFixed(2));
+  const btn=document.getElementById('svb');btn.disabled=true;btn.textContent='⏳ Đang lưu...';
+  try{
+    if(editId){
+      await updTrd(editId,{symbol:sym,direction:mdir,type,leverage:lev,entry,sl,tp1,tp2,qty,riskUSD:rU,riskPct:sett.riskPct,status,closePrice:cp2,note,date});
+      const i=trades.findIndex(x=>x.id===editId);if(i>-1)trades[i]={...trades[i],symbol:sym,direction:mdir,type,leverage:lev,entry,sl,tp1,tp2,qty,riskUSD:rU,status,closePrice:cp2,note,date};
+      toast('✅ Đã cập nhật','success');
+    }else{
+      const t=await insTrd({symbol:sym,direction:mdir,type,leverage:lev,entry,sl,tp1,tp2,qty,riskUSD:rU,riskPct:sett.riskPct,status,closePrice:cp2,note,date});trades.unshift(t);
+      toast('✅ Đã thêm lệnh '+sym,'success');
+    }
+    closeMod();rj();upd();
+  }catch(e){toast('❌ '+e.message,'error');}
+  btn.disabled=false;btn.innerHTML='💾 Lưu Lệnh';
+}
+function openClose(id){closeId=id;document.getElementById('cmp').value='';document.getElementById('cmn').value='';document.getElementById('cm').classList.add('open');}
+async function confClose(){
+  const price=parseFloat(document.getElementById('cmp').value),status=document.getElementById('cms').value,note=document.getElementById('cmn').value;
+  if(!price){toast('⚠️ Nhập giá đóng','error');return;}
+  const i=trades.findIndex(x=>x.id===closeId);if(i<0)return;
+  const t=trades[i],nn=note?(t.note?t.note+'\nExit: '+note:'Exit: '+note):t.note;
+  try{
+    await updTrd(closeId,{...t,status,closePrice:price,note:nn});
+    trades[i]={...t,status,closePrice:price,note:nn};
+    document.getElementById('cm').classList.remove('open');rj();upd();toast('✅ Đã đóng lệnh','success');
+  }catch(e){toast('❌ '+e.message,'error');}
+}
+
+function pnl(t){
+  if(!t.qty||!t.entry||t.status==='open')return 0;
+  if(t.closePrice){const d=t.direction==='short'?t.entry-t.closePrice:t.closePrice-t.entry;return parseFloat((d*t.qty).toFixed(2));}
+  if(t.status==='win'&&t.tp1){const d=t.direction==='short'?t.entry-t.tp1:t.tp1-t.entry;return parseFloat((d*t.qty).toFixed(2));}
+  if(t.status==='loss')return -Math.abs(t.riskUSD||0);return 0;
+}
+function rr(t){return(!t.tp1||!t.sl||!t.entry)?null:(Math.abs(t.tp1-t.entry)/Math.abs(t.entry-t.sl)).toFixed(2);}
+
+function upd(){
+  const cap=sett.capital,cl=trades.filter(t=>t.status!=='open'),tot=cl.reduce((s,t)=>s+pnl(t),0),cur=cap+tot;
+  const wn=cl.filter(t=>t.status==='win').length,ls=cl.filter(t=>t.status==='loss').length,wr=cl.length?Math.round(wn/cl.length*100):0;
+  const op=trades.filter(t=>t.status==='open').length,pp=tot/cap*100;
+  document.getElementById('d1').textContent='$'+cur.toFixed(2);
+  document.getElementById('d1').className='sv mo '+(cur>=cap?'pos':'neg');
+  document.getElementById('d1s').textContent='Vốn gốc: $'+cap.toLocaleString();
+  document.getElementById('d2').textContent=(tot>=0?'+':'')+' $'+tot.toFixed(2);
+  document.getElementById('d2').className='sv mo '+(tot>=0?'pos':'neg');
+  document.getElementById('d2s').textContent=(pp>=0?'+':'')+pp.toFixed(2)+'%';
+  document.getElementById('d3').textContent=wr+'%';document.getElementById('d3s').textContent=`${wn}W / ${ls}L`;
+  document.getElementById('d4').textContent=op;document.getElementById('d4s').textContent='Tổng '+trades.length+' lệnh';
+  document.getElementById('sbc').textContent='$'+cur.toFixed(2);
+  document.getElementById('sbp').textContent=`P&L: ${tot>=0?'+':''}$${tot.toFixed(2)}`;
+  deq();rrec();
+}
+function deq(){
+  const cv=document.getElementById('ec');const ctx=cv.getContext('2d');cv.width=cv.offsetWidth||600;cv.height=135;ctx.clearRect(0,0,cv.width,cv.height);
+  const cap=sett.capital,cl=[...trades].filter(t=>t.status!=='open').reverse();
+  let pts=[{x:0,y:cap}];let run=cap;cl.forEach((t,i)=>{run+=pnl(t);pts.push({x:i+1,y:run});});
+  if(pts.length<2){ctx.fillStyle='#475569';ctx.font='13px Space Grotesk';ctx.textAlign='center';ctx.fillText('Chưa có lệnh đã đóng',cv.width/2,67);return;}
+  const mn=Math.min(...pts.map(p=>p.y))*.995,mx=Math.max(...pts.map(p=>p.y))*1.005;
+  const p={t:9,b:16,l:7,r:7},w=cv.width-p.l-p.r,h=cv.height-p.t-p.b;
+  const tx=i=>p.l+(i/(pts.length-1))*w,ty=v=>p.t+h-((v-mn)/(mx-mn))*h;
+  const ip=pts[pts.length-1].y>=cap;
+  ctx.strokeStyle='#1e2638';ctx.lineWidth=1;[0,.25,.5,.75,1].forEach(r=>{const y=p.t+h*r;ctx.beginPath();ctx.moveTo(p.l,y);ctx.lineTo(p.l+w,y);ctx.stroke();});
+  const g=ctx.createLinearGradient(0,p.t,0,p.t+h);g.addColorStop(0,ip?'rgba(34,197,94,.2)':'rgba(239,68,68,.2)');g.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.beginPath();ctx.moveTo(tx(0),ty(pts[0].y));pts.forEach((pt,i)=>{if(i>0)ctx.lineTo(tx(i),ty(pt.y));});
+  ctx.lineTo(tx(pts.length-1),p.t+h);ctx.lineTo(tx(0),p.t+h);ctx.closePath();ctx.fillStyle=g;ctx.fill();
+  ctx.beginPath();ctx.moveTo(tx(0),ty(pts[0].y));pts.forEach((pt,i)=>{if(i>0)ctx.lineTo(tx(i),ty(pt.y));});
+  ctx.strokeStyle=ip?'#22c55e':'#ef4444';ctx.lineWidth=2;ctx.stroke();
+  ctx.beginPath();ctx.setLineDash([4,4]);ctx.moveTo(p.l,ty(cap));ctx.lineTo(p.l+w,ty(cap));ctx.strokeStyle='#3b82f6';ctx.lineWidth=1;ctx.stroke();ctx.setLineDash([]);
+  pts.forEach((pt,i)=>{ctx.beginPath();ctx.arc(tx(i),ty(pt.y),2.5,0,Math.PI*2);ctx.fillStyle=ip?'#22c55e':'#ef4444';ctx.fill();});
+}
+function rrec(){
+  const rc=trades.slice(0,5),el=document.getElementById('rb');
+  if(!rc.length){el.innerHTML='<div class="em"><div class="ei">📋</div><div class="ett">Chưa có lệnh</div></div>';return;}
+  el.innerHTML='<div style="overflow-x:auto"><table><thead><tr><th>MÃ</th><th>HƯỚNG</th><th>ENTRY</th><th>P&L</th><th>TRẠNG THÁI</th><th>NGÀY</th></tr></thead><tbody>'+
+    rc.map(t=>{const p2=pnl(t),d=new Date(t.date);return`<tr><td><strong class="mo">${t.symbol}</strong></td><td><span class="tg ${t.direction}">${t.direction==='long'?'▲ LONG':'▼ SHORT'}</span></td><td class="mo" style="font-size:11.5px">$${t.entry.toFixed(4)}</td><td class="${p2>0?'pp':p2<0?'pn2':''}">${t.status==='open'?'—':(p2>=0?'+':'')+' $'+p2.toFixed(2)}</td><td><span class="tg ${t.status}">${stl(t.status)}</span></td><td style="color:var(--t3);font-size:11px">${d.toLocaleDateString('vi-VN')}</td></tr>`;}).join('')+'</tbody></table></div>';
+}
+
+function sf(f){filt=f;['all','open','win','loss','long','short'].forEach((k,i)=>{const id=['fa','fo','fw','fl2','flo','fsh'][i];document.getElementById(id).classList.toggle('active',k===f);});rj();}
+function rj(){
+  const q=(document.getElementById('js').value||'').toLowerCase();
+  let list=trades.filter(t=>{
+    if(q&&!t.symbol.toLowerCase().includes(q)&&!(t.note||'').toLowerCase().includes(q))return false;
+    if(filt==='open')return t.status==='open';if(filt==='win')return t.status==='win';
+    if(filt==='loss')return t.status==='loss';if(filt==='long')return t.direction==='long';if(filt==='short')return t.direction==='short';return true;
+  });
+  const tb=document.getElementById('jtb');
+  if(!list.length){tb.innerHTML='<tr><td colspan="14"><div class="em"><div class="ei">🔍</div><div class="ett">Không có lệnh</div></div></td></tr>';return;}
+  tb.innerHTML=list.map((t,i)=>{
+    const p2=pnl(t),rr2=rr(t),d=new Date(t.date);
+    return`<tr>
+      <td style="color:var(--t3);font-size:10.5px">${i+1}</td>
+      <td><strong class="mo" style="font-size:13px">${t.symbol}</strong></td>
+      <td><span class="tg ${t.direction}">${t.direction==='long'?'▲ L':'▼ S'}</span></td>
+      <td class="mo" style="font-size:11.5px">$${t.entry.toFixed(4)}</td>
+      <td class="mo" style="font-size:11.5px;color:var(--re)">$${t.sl.toFixed(4)}</td>
+      <td class="mo" style="font-size:11.5px;color:var(--gr)">${t.tp1?'$'+t.tp1.toFixed(4):'—'}</td>
+      <td class="mo" style="font-size:11.5px;color:var(--gr)">${t.tp2?'$'+t.tp2.toFixed(4):'—'}</td>
+      <td class="mo" style="font-size:11.5px">${t.qty}</td>
+      <td class="mo" style="font-size:11.5px;color:var(--re)">$${(t.riskUSD||0).toFixed(2)}</td>
+      <td class="${p2>0?'pp':p2<0?'pn2':'mo'}">${t.status==='open'?'<span style="color:var(--t3)">—</span>':(p2>=0?'+':'')+' $'+p2.toFixed(2)}</td>
+      <td class="mo" style="font-size:11.5px">${rr2?'1:'+rr2:'—'}</td>
+      <td><span class="tg ${t.status}">${stl(t.status)}</span></td>
+      <td style="color:var(--t3);font-size:10.5px">${d.toLocaleDateString('vi-VN')}</td>
+      <td><div style="display:flex;gap:3px">
+        ${t.status==='open'?`<button class="btn bg" style="padding:3px 7px;font-size:10.5px" onclick="openClose(${t.id})">Đóng</button>`:''}
+        <button class="btn bh" style="padding:3px 7px;font-size:10.5px" onclick="openEdit(${t.id})">✏️</button>
+        <button class="btn bd" style="padding:3px 7px;font-size:10.5px" onclick="delTrd(${t.id})">🗑️</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+function stl(s){return{open:'🔵 Mở',win:'✅ Win',loss:'❌ Loss',be:'⚡ BE'}[s]||s;}
+
+function sst(t){
+  stab=t;
+  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',['overall','monthly','yearly'][i]===t));
+  document.getElementById('st-overall').style.display=t==='overall'?'block':'none';
+  document.getElementById('st-monthly').style.display=t==='monthly'?'block':'none';
+  document.getElementById('st-yearly').style.display=t==='yearly'?'block':'none';
+  if(t==='monthly'){pys();rm();}if(t==='yearly')ry();
+}
+function rst(){
+  const cap=sett.capital,cl=trades.filter(t=>t.status!=='open');
+  const wn=cl.filter(t=>t.status==='win'),ls=cl.filter(t=>t.status==='loss');
+  const pl=cl.map(t=>pnl(t)),tot=pl.reduce((s,v)=>s+v,0);
+  const aw=wn.length?wn.reduce((s,t)=>s+pnl(t),0)/wn.length:0;
+  const al=ls.length?ls.reduce((s,t)=>s+Math.abs(pnl(t)),0)/ls.length:0;
+  const mw=pl.length?Math.max(...pl):0,ml=pl.length?Math.min(...pl):0;
+  const wr=cl.length?(wn.length/cl.length*100):0,pf=al>0?(aw*wn.length)/(al*ls.length):0;
+  let pk=cap,mdd=0,rn=cap;
+  [...trades].reverse().filter(t=>t.status!=='open').forEach(t=>{rn+=pnl(t);if(rn>pk)pk=rn;const dd=(pk-rn)/pk*100;if(dd>mdd)mdd=dd;});
+  const stats=[
+    {l:'Tổng P&L',v:(tot>=0?'+':'')+' $'+tot.toFixed(2),c:tot>=0?'#22c55e':'#ef4444'},
+    {l:'Win Rate',v:wr.toFixed(1)+'%',c:wr>=50?'#22c55e':'#ef4444'},
+    {l:'Tổng Lệnh Đóng',v:cl.length,c:'var(--tx)'},
+    {l:'Win / Loss / BE',v:`${wn.length} / ${ls.length} / ${cl.filter(t=>t.status==='be').length}`,c:'var(--tx)'},
+    {l:'Avg Win',v:'+$'+aw.toFixed(2),c:'#22c55e'},
+    {l:'Avg Loss',v:'-$'+al.toFixed(2),c:'#ef4444'},
+    {l:'Profit Factor',v:pf.toFixed(2),c:pf>=1.5?'#22c55e':pf>=1?'var(--tx)':'#ef4444'},
+    {l:'Best Trade',v:'+$'+mw.toFixed(2),c:'#22c55e'},
+    {l:'Worst Trade',v:'$'+ml.toFixed(2),c:'#ef4444'},
+    {l:'Max Drawdown',v:mdd.toFixed(2)+'%',c:mdd<10?'#22c55e':mdd<20?'#f59e0b':'#ef4444'},
+  ];
+  document.getElementById('ps').innerHTML=stats.map(s=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--br)"><span style="font-size:12px;color:var(--t2)">${s.l}</span><span style="font-family:var(--mo);font-weight:700;font-size:13px;color:${s.c}">${s.v}</span></div>`).join('');
+  ddist(wn.length,ls.length,cl.filter(t=>t.status==='be').length);
+  const sd=[...cl].sort((a,b)=>pnl(b)-pnl(a));
+  const tw2=sd.filter(t=>pnl(t)>0).slice(0,5),tl2=sd.filter(t=>pnl(t)<0).reverse().slice(0,5);
+  document.getElementById('tw2').innerHTML=tw2.length?tw2.map(t=>`<div style="display:flex;justify-content:space-between;padding:8px 15px;border-bottom:1px solid var(--br)"><span class="mo" style="font-weight:700">${t.symbol}</span><span class="pp">+$${pnl(t).toFixed(2)}</span></div>`).join(''):'<div class="em" style="padding:20px"><div class="ett">Chưa có lệnh thắng</div></div>';
+  document.getElementById('tl2').innerHTML=tl2.length?tl2.map(t=>`<div style="display:flex;justify-content:space-between;padding:8px 15px;border-bottom:1px solid var(--br)"><span class="mo" style="font-weight:700">${t.symbol}</span><span class="pn2">$${pnl(t).toFixed(2)}</span></div>`).join(''):'<div class="em" style="padding:20px"><div class="ett">Chưa có lệnh thua</div></div>';
+}
+function ddist(w,l,be){
+  const cv=document.getElementById('dc');const ctx=cv.getContext('2d');cv.width=cv.offsetWidth||280;cv.height=175;ctx.clearRect(0,0,cv.width,cv.height);
+  const tot=w+l+be;if(!tot){ctx.fillStyle='#475569';ctx.font='12.5px Space Grotesk';ctx.textAlign='center';ctx.fillText('Chưa có dữ liệu',cv.width/2,87);return;}
+  const cx=cv.width/2,cy=78,r=58;
+  const segs=[{v:w,c:'#22c55e',l:'Win'},{v:l,c:'#ef4444',l:'Loss'},{v:be,c:'#f59e0b',l:'BE'}].filter(s=>s.v>0);
+  let ang=-Math.PI/2;segs.forEach(s=>{const sl=(s.v/tot)*Math.PI*2;ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,ang,ang+sl);ctx.closePath();ctx.fillStyle=s.c;ctx.fill();ang+=sl;});
+  ctx.beginPath();ctx.arc(cx,cy,26,0,Math.PI*2);ctx.fillStyle='#161b27';ctx.fill();
+  ctx.fillStyle='#e2e8f0';ctx.font='bold 14px JetBrains Mono';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(tot,cx,cy-6);
+  ctx.font='10.5px Space Grotesk';ctx.fillStyle='#475569';ctx.fillText('lệnh',cx,cy+9);
+  let lx=6;segs.forEach(s=>{ctx.fillStyle=s.c;ctx.fillRect(lx,158,8,8);ctx.fillStyle='#94a3b8';ctx.font='10.5px Space Grotesk';ctx.textAlign='left';ctx.textBaseline='top';ctx.fillText(`${s.l}(${s.v})`,lx+11,158);lx+=72;});
+}
+
+function gyrs(){const y=new Set();y.add(new Date().getFullYear());trades.forEach(t=>y.add(new Date(t.date).getFullYear()));return[...y].sort((a,b)=>b-a);}
+function pys(){
+  const sel=document.getElementById('mys');const ys=gyrs();const cur=sel.value||new Date().getFullYear();
+  sel.innerHTML=ys.map(y=>`<option value="${y}" ${y==cur?'selected':''}>${y}</option>`).join('');
+}
+function gmd(year){
+  const ms=Array.from({length:12},(_,i)=>{const mn=['T1','T2','T3','T4','T5','T6','T7','T8','T9','T10','T11','T12'][i];return{m:i+1,label:mn,tds:[],pnl:0};});
+  const cl=trades.filter(t=>t.status!=='open'&&new Date(t.date).getFullYear()==year);
+  cl.forEach(t=>{const mi=new Date(t.date).getMonth();ms[mi].tds.push(t);ms[mi].pnl+=pnl(t);});
+  return ms;
+}
+function rm(){
+  const yr=parseInt(document.getElementById('mys').value)||new Date().getFullYear();
+  const ms=gmd(yr);
+  dbar('mc',ms.map(m=>m.label),ms.map(m=>parseFloat(m.pnl.toFixed(2))));
+  document.getElementById('mtb').innerHTML=ms.map(m=>{
+    const wn=m.tds.filter(t=>t.status==='win').length,ls=m.tds.filter(t=>t.status==='loss').length;
+    const wr=m.tds.length?Math.round(wn/m.tds.length*100):0,av=m.tds.length?m.pnl/m.tds.length:0;
+    const pl2=m.tds.map(t=>pnl(t)),bst=pl2.length?Math.max(...pl2):0,wst=pl2.length?Math.min(...pl2):0;
+    return`<tr>
+      <td style="font-weight:600">${m.label} ${yr}</td>
+      <td class="mo">${m.tds.length}</td>
+      <td class="mo" style="color:var(--gr)">${wn}</td>
+      <td class="mo" style="color:var(--re)">${ls}</td>
+      <td class="mo" style="color:${wr>=50?'var(--gr)':'var(--re)'}">${m.tds.length?wr+'%':'—'}</td>
+      <td class="mo ${m.pnl>0?'pp':m.pnl<0?'pn2':''}">${m.tds.length?(m.pnl>=0?'+':'')+' $'+m.pnl.toFixed(2):'—'}</td>
+      <td class="mo" style="color:var(--t2)">${m.tds.length?(av>=0?'+':'')+' $'+av.toFixed(2):'—'}</td>
+      <td class="mo" style="color:var(--gr)">${pl2.length?'+$'+bst.toFixed(2):'—'}</td>
+      <td class="mo" style="color:var(--re)">${pl2.length?'$'+wst.toFixed(2):'—'}</td>
+    </tr>`;
+  }).join('');
+}
+function gyd(){
+  return gyrs().map(year=>{
+    const cl=trades.filter(t=>t.status!=='open'&&new Date(t.date).getFullYear()==year);
+    const p2=cl.reduce((s,t)=>s+pnl(t),0),wn=cl.filter(t=>t.status==='win').length,ls=cl.filter(t=>t.status==='loss').length;
+    const wr=cl.length?Math.round(wn/cl.length*100):0;
+    let pk=sett.capital,mdd=0,rn=sett.capital;[...cl].reverse().forEach(t=>{rn+=pnl(t);if(rn>pk)pk=rn;const dd=(pk-rn)/pk*100;if(dd>mdd)mdd=dd;});
+    return{year,count:cl.length,wins:wn,losses:ls,wr,pnl:p2,mdd};
+  });
+}
+function ry(){
+  const data=gyd();dbar('yc',data.map(d=>String(d.year)),data.map(d=>parseFloat(d.pnl.toFixed(2))));
+  const cap=sett.capital;
+  document.getElementById('ytb').innerHTML=data.map(d=>{
+    const gr=d.pnl/cap*100;
+    return`<tr>
+      <td style="font-weight:700;font-size:13.5px">${d.year}</td>
+      <td class="mo">${d.count}</td>
+      <td class="mo" style="color:var(--gr)">${d.wins}</td>
+      <td class="mo" style="color:var(--re)">${d.losses}</td>
+      <td class="mo" style="color:${d.wr>=50?'var(--gr)':'var(--re)'}">${d.count?d.wr+'%':'—'}</td>
+      <td class="mo ${d.pnl>0?'pp':d.pnl<0?'pn2':''}">${d.count?(d.pnl>=0?'+':'')+' $'+d.pnl.toFixed(2):'—'}</td>
+      <td class="mo" style="color:${gr>=0?'var(--gr)':'var(--re)'}">${d.count?(gr>=0?'+':'')+gr.toFixed(1)+'%':'—'}</td>
+      <td class="mo" style="color:${d.mdd<10?'var(--gr)':d.mdd<20?'var(--ye)':'var(--re)'}">${d.count?d.mdd.toFixed(1)+'%':'—'}</td>
+    </tr>`;
+  }).join('');
+}
+function dbar(cid,labels,vals){
+  const cv=document.getElementById(cid);if(!cv)return;
+  const ctx=cv.getContext('2d');cv.width=cv.offsetWidth||600;cv.height=155;ctx.clearRect(0,0,cv.width,cv.height);
+  if(!vals.length){ctx.fillStyle='#475569';ctx.font='12.5px Space Grotesk';ctx.textAlign='center';ctx.fillText('Chưa có dữ liệu',cv.width/2,77);return;}
+  const p={t:10,b:26,l:42,r:10},w=cv.width-p.l-p.r,h=cv.height-p.t-p.b,mx=Math.max(...vals.map(Math.abs),1),n=vals.length;
+  const bw=Math.max(7,(w/n)*0.58),gp=(w/n)*(0.42/2),mid=p.t+h/2;
+  ctx.strokeStyle='#1e2638';ctx.lineWidth=1;[-1,-.5,0,.5,1].forEach(r=>{const y=p.t+h/2-r*(h/2);ctx.beginPath();ctx.moveTo(p.l,y);ctx.lineTo(p.l+w,y);ctx.stroke();});
+  ctx.beginPath();ctx.moveTo(p.l,mid);ctx.lineTo(p.l+w,mid);ctx.strokeStyle='#2a3348';ctx.lineWidth=1.5;ctx.stroke();
+  ctx.fillStyle='#475569';ctx.font='9px JetBrains Mono';ctx.textAlign='right';
+  [mx,mx/2,0,-mx/2,-mx].forEach((v,i)=>{const y=p.t+(i/4)*h;ctx.fillText((v>0?'+':'')+v.toFixed(0),p.l-3,y+3);});
+  vals.forEach((v,i)=>{
+    const x=p.l+(i/n)*w+gp,bh=Math.abs(v)/mx*(h/2),y=v>=0?mid-bh:mid,color=v>=0?'#22c55e':'#ef4444';
+    const grd=ctx.createLinearGradient(0,y,0,y+bh);grd.addColorStop(0,color);grd.addColorStop(1,color+'44');
+    ctx.fillStyle=grd;ctx.beginPath();const r=Math.min(3,bw/4);
+    if(v>=0)ctx.roundRect(x,y,bw,bh,r);else ctx.roundRect(x,mid,bw,bh,r);ctx.fill();
+    ctx.fillStyle='#94a3b8';ctx.font='9px Space Grotesk';ctx.textAlign='center';ctx.fillText(labels[i],x+bw/2,cv.height-p.b+13);
+    if(v!==0){ctx.fillStyle=v>0?'#22c55e':'#ef4444';ctx.font='7.5px JetBrains Mono';ctx.fillText((v>0?'+':'')+v.toFixed(0),x+bw/2,v>0?y-2:mid+bh+9);}
+  });
+}
+function expData(){
+  const d=JSON.stringify({settings:sett,trades},null,2);
+  const blob=new Blob([d],{type:'application/json'});const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=`tradevault_${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(url);
+  toast('📤 Đã xuất dữ liệu','success');
+}
+async function clrAll(){
+  if(!confirm('Xóa TOÀN BỘ lịch sử trên database? Không thể hoàn tác!'))return;
+  const{error}=await sb.from('trades').delete().neq('id',0);
+  if(error){toast('❌ '+error.message,'error');return;}
+  trades=[];rj();upd();toast('🗑️ Đã xóa toàn bộ','info');
+}
+function toast(msg,type='info'){
+  const el=document.createElement('div');el.className=`tz ${type}`;el.innerHTML=msg;
+  document.getElementById('toasts').appendChild(el);setTimeout(()=>el.remove(),3200);
+}
+init();
+window.addEventListener('resize',()=>{if(document.getElementById('page-dashboard').classList.contains('active'))deq();});
+</script>
+</body>
+</html>
